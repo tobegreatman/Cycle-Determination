@@ -760,14 +760,14 @@
     });
     svg.appendChild(grid);
 
-    /* 波形：y = -A·cos(2π(t/T + phase))，phase 0=谷底 */
+    /* 波形：y = CY + A·cos(2π(t/T + phase))。SVG y 轴向下，phase 0=谷底，0.5=峰值 */
     waves.forEach(function (w) {
       var c = data.cycles[w.key];
       var T = c.length_years || 3.5, phase = c.phase || 0, A = w.amp;
       var d = "";
       for (var px = PAD_L; px <= W - PAD_R; px += 2) {
         var t = T_MIN + (px - PAD_L) / (W - PAD_L - PAD_R) * YEARS;
-        var y = CY - A * Math.cos(2 * Math.PI * (t / T + phase));
+        var y = CY + A * Math.cos(2 * Math.PI * (t / T + phase));
         d += (px === PAD_L ? "M" : "L") + px.toFixed(1) + " " + y.toFixed(1);
       }
       var path = document.createElementNS(NS, "path");
@@ -781,7 +781,7 @@
       svg.appendChild(path);
 
       /* 当前相位点 */
-      var y0 = CY - A * Math.cos(2 * Math.PI * phase);
+      var y0 = CY + A * Math.cos(2 * Math.PI * phase);
       var dot = document.createElementNS(NS, "circle");
       dot.setAttribute("cx", tx(0)); dot.setAttribute("cy", y0.toFixed(1));
       dot.setAttribute("r", 5); dot.setAttribute("fill", w.color);
