@@ -176,6 +176,10 @@
     animation: phasePulse 2.4s ease-out infinite;
     transition: left 1s cubic-bezier(0.2, 0.8, 0.2, 1);
   }
+  .phase-tick {
+    position: absolute; top: -3px; width: 1px; height: 12px;
+    background: var(--gray-border-strong); opacity: 0.55;
+  }
   .phase-label {
     display: flex; justify-content: space-between;
     font-size: 11px; color: var(--gray-text); margin-bottom: 14px;
@@ -257,7 +261,10 @@
   .heat.h1 { background: rgba(0, 113, 227, 0.25); color: var(--ink); }
   .heat.h2 { background: rgba(0, 113, 227, 0.55); }
   .heat.h3 { background: var(--blue); }
-  .heat.hg { background: rgba(0, 113, 227, 0.75); }
+  .heat.hna {
+    background: transparent; color: var(--gray-text);
+    border: 1px solid var(--gray-border-soft);
+  }
   .muted { color: var(--gray-text); font-size: 13px; }
 
   /* ============ 资产与清单（浅灰章节） ============ */
@@ -516,7 +523,7 @@
     cycles: {
       kichin: {
         name: "基钦周期", length_years: 3.5, stage: "被动去库", direction: "回升",
-        confidence: "中", phase: 0.76,
+        confidence: "中", phase: 0.08,
         evidence: [
           "工业企业产成品存货同比降至低位，连续回落",
           "PMI 新订单分项回升至荣枯线上方",
@@ -526,7 +533,7 @@
       },
       juglar: {
         name: "朱格拉周期", length_years: 9, stage: "出清期", direction: "下行",
-        confidence: "中", phase: 0.64,
+        confidence: "中", phase: 0.86,
         evidence: [
           "制造业固投增速高位回落，结构分化",
           "工业产能利用率低于长期中枢",
@@ -536,7 +543,7 @@
       },
       kuznets: {
         name: "库兹涅茨周期", length_years: 20, stage: "下行出清段", direction: "下行",
-        confidence: "高", phase: 0.7,
+        confidence: "高", phase: 0.82,
         evidence: [
           "新开工相对历史峰值回撤超六成",
           "25-44 岁购房主力人口进入长期下行通道",
@@ -546,7 +553,7 @@
       },
       kondratieff: {
         name: "康德拉季耶夫长波", length_years: 55, stage: "萧条", direction: "筑底",
-        confidence: "低", phase: 0.82,
+        confidence: "低", phase: 0.87,
         evidence: [
           "第五波信息技术渗透率进入成熟区，红利递减",
           "AI 尚未系统性抬升全要素生产率",
@@ -622,16 +629,20 @@
   }
   function confLevel(c) { return c === "高" ? 3 : c === "中" ? 2 : 1; }
 
-  /* 阶段 → 热力档位（0-3）：颜色越深，周期位置越有利 */
+  /* 阶段 → 热力档位（0-3）：颜色越深，周期位置越有利；"—"为不适用，中性样式 */
   var HEAT_MAP = {
     "主动补库": 3, "被动去库": 2, "被动补库": 1, "主动去库": 0,
     "扩张期": 3, "复苏期": 2, "见顶期": 1, "出清期": 0,
-    "成长期": 3, "成熟期": 2, "衰退期": 0, "—": -1
+    "扩产": 3, "复苏": 2, "见顶": 1, "出清": 0,
+    "成长期": 3, "成熟期": 2, "衰退期": 0
   };
   function heatClass(stage) {
-    var h = HEAT_MAP[stage];
-    if (h === undefined) h = -1;
-    return h < 0 ? "hg" : "h" + h;
+    if (!stage || stage === "—") return "hna";
+    /* 剥离"（后段）"等段内细分后缀后再匹配 */
+    var base = stage.replace(/[（(][^）)]*[）)]/g, "").trim();
+    var h = HEAT_MAP[base];
+    if (h === undefined) return "hna";
+    return "h" + h;
   }
 
   /* ============ 渲染：元信息 + Hero pills ============ */
@@ -683,6 +694,11 @@
       card.appendChild(meta);
 
       var track = el("div", "phase-track");
+      [25, 50, 75].forEach(function (p) {
+        var tick = el("i", "phase-tick");
+        tick.style.left = p + "%";
+        track.appendChild(tick);
+      });
       var fill = el("div", "phase-fill");
       fill.style.width = (Math.round((c.phase || 0) * 100)) + "%";
       var now = el("div", "phase-now");
@@ -719,11 +735,12 @@
     var YEARS = T_MAX - T_MIN;
     function tx(t) { return PAD_L + (t - T_MIN) / YEARS * (W - PAD_L - PAD_R); }
 
+    /* 系列：白 + 青/黄/粉红（蓝黄轴色相 + 明度双通道分离，红绿色弱友好） */
     var waves = [
-      { key: "kondratieff", amp: 128, color: "#2997ff", opacity: 0.95, width: 2.6 },
-      { key: "kuznets",     amp: 100, color: "#2997ff", opacity: 0.6,  width: 2.2 },
-      { key: "juglar",      amp: 74,  color: "#2997ff", opacity: 0.42, width: 2 },
-      { key: "kichin",      amp: 50,  color: "#e8e8ed", opacity: 0.55, width: 1.6 }
+      { key: "kondratieff", amp: 128, color: "#f5f5f7", opacity: 0.95, width: 2.8 },
+      { key: "kuznets",     amp: 100, color: "#64d2ff", opacity: 0.9,  width: 2.2 },
+      { key: "juglar",      amp: 74,  color: "#ffd60a", opacity: 0.92, width: 2 },
+      { key: "kichin",      amp: 50,  color: "#ff375f", opacity: 0.9,  width: 1.8 }
     ];
 
     /* 网格：峰 / 中 / 谷 + 年份刻度 */
@@ -761,6 +778,7 @@
     svg.appendChild(grid);
 
     /* 波形：y = CY + A·cos(2π(t/T + phase))。SVG y 轴向下，phase 0=谷底，0.5=峰值 */
+    var dotLabels = [];
     waves.forEach(function (w) {
       var c = data.cycles[w.key];
       var T = c.length_years || 3.5, phase = c.phase || 0, A = w.amp;
@@ -786,13 +804,43 @@
       dot.setAttribute("cx", tx(0)); dot.setAttribute("cy", y0.toFixed(1));
       dot.setAttribute("r", 5); dot.setAttribute("fill", w.color);
       svg.appendChild(dot);
+
+      dotLabels.push({
+        y0: y0, yLabel: y0,
+        color: w.color, opacity: w.opacity,
+        text: CYCLE_LABELS[w.key] + " · " + (c.stage || "—")
+      });
     });
 
-    /* 当前时点竖线 */
+    /* 阶段标签：竖线右侧一列，防重叠排布，细连线指向对应相位点 */
+    dotLabels.sort(function (a, b) { return a.y0 - b.y0; });
+    for (var li = 1; li < dotLabels.length; li++) {
+      if (dotLabels[li].yLabel - dotLabels[li - 1].yLabel < 18) {
+        dotLabels[li].yLabel = dotLabels[li - 1].yLabel + 18;
+      }
+    }
+    dotLabels.forEach(function (lb) {
+      var lead = document.createElementNS(NS, "line");
+      lead.setAttribute("x1", tx(0) + 7); lead.setAttribute("y1", lb.y0.toFixed(1));
+      lead.setAttribute("x2", tx(0) + 13); lead.setAttribute("y2", lb.yLabel.toFixed(1));
+      lead.setAttribute("stroke", lb.color);
+      lead.setAttribute("stroke-opacity", Math.min(lb.opacity + 0.25, 1) * 0.6);
+      lead.setAttribute("stroke-width", "1");
+      svg.appendChild(lead);
+      var text = document.createElementNS(NS, "text");
+      text.setAttribute("x", tx(0) + 16); text.setAttribute("y", (lb.yLabel + 4).toFixed(1));
+      text.setAttribute("fill", lb.color);
+      text.setAttribute("font-size", "11");
+      text.setAttribute("font-weight", "500");
+      text.textContent = lb.text;
+      svg.appendChild(text);
+    });
+
+    /* 当前时点竖线（极淡白，参考线存在感低于任何一条波） */
     var now = document.createElementNS(NS, "line");
     now.setAttribute("x1", tx(0)); now.setAttribute("x2", tx(0));
     now.setAttribute("y1", CY - 148); now.setAttribute("y2", CY + 156);
-    now.setAttribute("stroke", "rgba(41,151,255,0.55)");
+    now.setAttribute("stroke", "rgba(255,255,255,0.18)");
     now.setAttribute("stroke-width", "1.5");
     now.setAttribute("stroke-dasharray", "4 5");
     svg.appendChild(now);
@@ -891,8 +939,10 @@
 
   /* ============ 初始化 ============ */
   var initial = null;
-  try { initial = JSON.parse(localStorage.getItem(STORAGE_KEY)); } catch (e) { initial = null; }
-  if (initial) { validate(initial); }
+  try {
+    initial = JSON.parse(localStorage.getItem(STORAGE_KEY));
+    if (initial) validate(initial);
+  } catch (e) { initial = null; }
   var data = initial || DEMO_DATA;
   input.value = JSON.stringify(data, null, 2);
   renderAll(data);
